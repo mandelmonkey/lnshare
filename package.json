@@ -1,0 +1,27 @@
+{
+  "name": "lnshare",
+  "version": "1.0.0",
+  "description": "Progressive Web App for sharing Lightning addresses via QR code using LUD-22 protocol",
+  "main": "test-server.js",
+  "scripts": {
+    "start": "node test-server.js",
+    "test": "node test-server.js"
+  },
+  "keywords": [
+    "lightning",
+    "bitcoin",
+    "lud-22",
+    "pwa",
+    "lightning-address",
+    "qr-code"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  }
+}

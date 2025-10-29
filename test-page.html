@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUD-22 Test QR Code Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #1f2937;
+            color: #f3f4f6;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #9ca3af;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: #374151;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            border: 1px solid #4b5563;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: #1f2937;
+            border: 1px solid #4b5563;
+            border-radius: 8px;
+            color: #f3f4f6;
+            margin-bottom: 1rem;
+            font-family: inherit;
+        }
+
+        button {
+            width: 100%;
+            padding: 1rem;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #4f46e5;
+        }
+
+        #qr-container {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            margin-top: 1rem;
+        }
+
+        #qr-container canvas {
+            max-width: 100%;
+        }
+
+        .url-box {
+            background: #1f2937;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.875rem;
+        }
+
+        .info {
+            background: #1f2937;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .steps {
+            margin-left: 1.5rem;
+        }
+
+        .steps li {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 LUD-22 QR Code Generator</h1>
+    <p class="subtitle">Generate test QR codes for your LNShare app</p>
+
+    <div class="card">
+        <h2>📝 Request Details</h2>
+        <div class="info">
+            Enter the reason why you're requesting the Lightning address. This will be shown to the user when they scan the QR code.
+        </div>
+
+        <label>Metadata (reason for request)</label>
+        <textarea id="metadata" rows="3" placeholder="e.g., Share your address to receive game rewards">Share your Lightning address to receive 1000 sats reward from our game!</textarea>
+
+        <button onclick="generateQR()">Generate QR Code</button>
+
+        <div id="qr-container" style="display: none;"></div>
+    </div>
+
+    <div class="card">
+        <h2>📱 How to Test</h2>
+        <ol class="steps">
+            <li>Make sure the test server is running: <code>node test-server.js</code></li>
+            <li>Click "Generate QR Code" above</li>
+            <li>Open LNShare on your mobile device or in another browser tab at <code>http://localhost:8000</code></li>
+            <li>Enter your Lightning address in LNShare</li>
+            <li>Click "Scan QR Code" in LNShare</li>
+            <li>Point your camera at the QR code below</li>
+            <li>Review the request details and confirm</li>
+            <li>Check the test server console to see the received address!</li>
+        </ol>
+    </div>
+
+    <script src="qrcode.min.js"></script>
+    <script>
+        async function generateQR() {
+            const metadata = document.getElementById('metadata').value;
+            const container = document.getElementById('qr-container');
+
+            container.innerHTML = '<p style="color: #1f2937;">Generating QR code...</p>';
+            container.style.display = 'block';
+
+            try {
+                // Call test server to create a request
+                const response = await fetch(`/create-request?metadata=${encodeURIComponent(metadata)}`);
+                const data = await response.json();
+
+                // Generate QR code
+                container.innerHTML = `
+                    <h3 style="color: #1f2937; margin-bottom: 1rem;">📷 Scan with LNShare</h3>
+                    <div id="qrcode-display" style="display: flex; justify-content: center; margin: 1rem 0;"></div>
+                    <div style="background: #1f2937; padding: 1rem; border-radius: 8px; margin-top: 1rem; word-break: break-all; font-family: monospace; font-size: 0.75rem; color: #6366f1;">
+                        <strong style="color: #9ca3af;">Request URL:</strong><br>
+                        ${data.requestUrl}
+                    </div>
+                    <p style="color: #059669; margin-top: 1rem; font-weight: 600;">
+                        ✓ QR code generated successfully!
+                    </p>
+                `;
+
+                // Create QR code after DOM is ready
+                setTimeout(() => {
+                    new QRCode(document.getElementById('qrcode-display'), {
+                        text: data.requestUrl,
+                        width: 400,
+                        height: 400,
+                        colorDark: '#000000',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                }, 100);
+
+            } catch (error) {
+                container.innerHTML = `
+                    <p style="color: #ef4444;">
+                        ✗ Error: ${error.message}<br><br>
+                        Make sure the test server is running: <code>node test-server.js</code>
+                    </p>
+                `;
+            }
+        }
+
+        // Auto-generate on load
+        window.addEventListener('load', () => {
+            generateQR();
+        });
+    </script>
+</body>
+</html>

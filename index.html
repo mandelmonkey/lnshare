@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="description" content="Share your Lightning Address via QR code">
+    <title>LNShare - Lightning Address Sharing</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>⚡</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ LNShare</h1>
+            <p class="subtitle">Share your Lightning Address via QR</p>
+        </header>
+
+        <main id="app">
+            <!-- Setup Screen -->
+            <div id="setup-screen" class="screen">
+                <div class="card">
+                    <h2>Enter Your Lightning Address</h2>
+                    <p class="info">Your Lightning address will be stored locally and shared when you scan QR codes.</p>
+                    <div class="input-group">
+                        <input
+                            type="text"
+                            id="lightning-address-input"
+                            placeholder="user@wallet.com"
+                            autocomplete="off"
+                            spellcheck="false"
+                        >
+                    </div>
+                    <button id="save-address-btn" class="btn btn-primary">Save Address</button>
+                </div>
+            </div>
+
+            <!-- Main Screen -->
+            <div id="main-screen" class="screen hidden">
+                <div class="card">
+                    <div class="address-display">
+                        <label>Your Lightning Address</label>
+                        <div class="address-value" id="stored-address"></div>
+                        <button id="change-address-btn" class="btn btn-secondary btn-sm">Change Address</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <button id="scan-btn" class="btn btn-primary btn-large">
+                        <span class="btn-icon">📷</span>
+                        Scan QR Code
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scanner Screen -->
+            <div id="scanner-screen" class="screen hidden">
+                <div class="scanner-container">
+                    <video id="scanner-video" autoplay playsinline></video>
+                    <canvas id="scanner-canvas" class="hidden"></canvas>
+                    <div class="scanner-overlay">
+                        <div class="scanner-box"></div>
+                        <p class="scanner-hint">Point camera at QR code</p>
+                    </div>
+                </div>
+                <button id="cancel-scan-btn" class="btn btn-secondary">Cancel</button>
+            </div>
+
+            <!-- Confirmation Screen -->
+            <div id="confirmation-screen" class="screen hidden">
+                <div class="card">
+                    <h2>Share Your Lightning Address?</h2>
+                    <div class="request-details">
+                        <div class="detail-row">
+                            <label>Domain:</label>
+                            <span id="request-domain" class="domain-value"></span>
+                        </div>
+                        <div class="detail-row">
+                            <label>Reason:</label>
+                            <span id="request-metadata"></span>
+                        </div>
+                        <div class="detail-row">
+                            <label>Your Address:</label>
+                            <span id="confirm-address" class="address-value"></span>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button id="confirm-share-btn" class="btn btn-primary">Share Address</button>
+                        <button id="deny-share-btn" class="btn btn-secondary">Deny</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result Screen -->
+            <div id="result-screen" class="screen hidden">
+                <div class="card">
+                    <div id="result-content"></div>
+                    <button id="done-btn" class="btn btn-primary">Done</button>
+                </div>
+            </div>
+        </main>
+
+        <div id="error-toast" class="toast hidden"></div>
+    </div>
+
+    <script src="qr-scanner.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

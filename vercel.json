@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "buildCommand": "echo 'No build needed for static PWA'",
+  "outputDirectory": ".",
+  "routes": [
+    {
+      "src": "/sw.js",
+      "headers": {
+        "Cache-Control": "public, max-age=0, must-revalidate",
+        "Service-Worker-Allowed": "/"
+      },
+      "dest": "/sw.js"
+    },
+    {
+      "src": "/manifest.json",
+      "headers": {
+        "Content-Type": "application/manifest+json"
+      },
+      "dest": "/manifest.json"
+    },
+    {
+      "src": "/(.*\\.(js|css|html|json))",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      },
+      "dest": "/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}

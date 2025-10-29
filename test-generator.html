@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUD-22 Test Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #9ca3af;
+            margin-bottom: 2rem;
+        }
+
+        .section {
+            background: #374151;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            border: 1px solid #4b5563;
+        }
+
+        h2 {
+            margin-bottom: 1rem;
+            color: #6366f1;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #d1d5db;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: #1f2937;
+            border: 1px solid #4b5563;
+            border-radius: 8px;
+            color: #f3f4f6;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            font-family: inherit;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+
+        button {
+            padding: 0.875rem 1.5rem;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #4f46e5;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #qr-display {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+        }
+
+        #qr-display canvas {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .url-display {
+            background: #1f2937;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            color: #6366f1;
+        }
+
+        .info {
+            background: #1f2937;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #6366f1;
+        }
+
+        .code-block {
+            background: #1f2937;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+
+        .log-entry {
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            background: #1f2937;
+            border-radius: 4px;
+            border-left: 3px solid #6366f1;
+        }
+
+        .log-time {
+            color: #9ca3af;
+            font-size: 0.85rem;
+        }
+
+        #received-addresses {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 LUD-22 Test Generator</h1>
+        <p class="subtitle">Generate test QR codes for LNShare development</p>
+
+        <div class="section">
+            <h2>Generate Test QR Code</h2>
+            <div class="info">
+                This generates a mock LUD-22 address request QR code. Scan it with your LNShare app to test the flow.
+            </div>
+
+            <label for="callback-url">Callback URL (your test server endpoint)</label>
+            <input type="text" id="callback-url" value="http://localhost:8000/test-callback" placeholder="https://yourserver.com/callback">
+
+            <label for="metadata">Metadata (reason for request)</label>
+            <textarea id="metadata" rows="2" placeholder="Please share your Lightning address to receive rewards">Please share your Lightning address to receive rewards from our game</textarea>
+
+            <button onclick="generateQR()">Generate QR Code</button>
+
+            <div id="qr-display" style="display: none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>Mock Server Endpoint</h2>
+            <div class="info">
+                This page also acts as a mock server to handle LUD-22 requests. When your LNShare app scans the QR code above, it will make requests to this page.
+            </div>
+
+            <h3>Received Lightning Addresses</h3>
+            <div id="received-addresses">
+                <p style="color: #9ca3af;">No addresses received yet. Scan the QR code above with LNShare.</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>How to Test</h2>
+            <ol style="margin-left: 1.5rem;">
+                <li>Open this page in one browser tab</li>
+                <li>Open LNShare in another tab or on your mobile device</li>
+                <li>Enter your Lightning address in LNShare</li>
+                <li>Click "Generate QR Code" above</li>
+                <li>Use LNShare to scan the generated QR code</li>
+                <li>Confirm the request in LNShare</li>
+                <li>See the received address appear below</li>
+            </ol>
+        </div>
+    </div>
+
+    <script src="qrcode.min.js"></script>
+    <script>
+        // Store active requests
+        const activeRequests = new Map();
+
+        // Generate random k1 value
+        function generateK1() {
+            const array = new Uint8Array(32);
+            crypto.getRandomValues(array);
+            return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Generate QR code
+        function generateQR() {
+            const callback = document.getElementById('callback-url').value;
+            const metadata = document.getElementById('metadata').value;
+            const k1 = generateK1();
+
+            // Store request data
+            activeRequests.set(k1, {
+                callback,
+                metadata,
+                timestamp: Date.now()
+            });
+
+            // Create the initial request URL
+            const baseUrl = window.location.href.split('?')[0];
+            const requestUrl = `${baseUrl}?tag=addressRequest&k1=${k1}`;
+
+            // Generate QR code
+            const qrDisplay = document.getElementById('qr-display');
+            qrDisplay.innerHTML = `
+                <h3 style="color: #1f2937; margin-bottom: 1rem;">Scan this QR code with LNShare</h3>
+                <div id="qrcode-display" style="display: flex; justify-content: center; margin: 1rem 0;"></div>
+                <div style="background: #1f2937; padding: 1rem; border-radius: 8px; margin-top: 1rem; word-break: break-all; font-family: monospace; font-size: 0.75rem; color: #6366f1;">
+                    <strong style="color: #9ca3af;">Request URL:</strong><br>
+                    ${requestUrl}
+                </div>
+            `;
+            qrDisplay.style.display = 'block';
+
+            try {
+                // Create QR code after DOM is ready
+                setTimeout(() => {
+                    new QRCode(document.getElementById('qrcode-display'), {
+                        text: requestUrl,
+                        width: 400,
+                        height: 400,
+                        colorDark: '#000000',
+                        colorLight: '#ffffff',
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                }, 100);
+            } catch (error) {
+                qrDisplay.innerHTML = `<p style="color: #ef4444;">Error generating QR code: ${error.message}</p>`;
+            }
+        }
+
+        // Handle incoming requests (simulating a server)
+        window.addEventListener('message', async (event) => {
+            // Handle requests from same origin (for testing)
+            if (event.origin !== window.location.origin) return;
+
+            const { type, data } = event.data;
+
+            if (type === 'addressRequest') {
+                const k1 = data.k1;
+                const requestData = activeRequests.get(k1);
+
+                if (requestData) {
+                    event.source.postMessage({
+                        type: 'addressRequestResponse',
+                        data: {
+                            tag: 'addressRequest',
+                            callback: requestData.callback,
+                            k1: k1,
+                            metadata: requestData.metadata
+                        }
+                    }, event.origin);
+                }
+            } else if (type === 'submitAddress') {
+                const { k1, address } = data;
+                const requestData = activeRequests.get(k1);
+
+                if (requestData) {
+                    // Log received address
+                    logReceivedAddress(address, requestData);
+                    activeRequests.delete(k1);
+
+                    event.source.postMessage({
+                        type: 'submitAddressResponse',
+                        data: { status: 'OK' }
+                    }, event.origin);
+                } else {
+                    event.source.postMessage({
+                        type: 'submitAddressResponse',
+                        data: { status: 'ERROR', reason: 'Invalid or expired k1' }
+                    }, event.origin);
+                }
+            }
+        });
+
+        // Handle URL parameters (for GET requests from LNShare)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('tag') === 'addressRequest') {
+            const k1 = urlParams.get('k1');
+            const requestData = activeRequests.get(k1);
+
+            if (requestData) {
+                // Return JSON response
+                document.body.innerHTML = `<pre>${JSON.stringify({
+                    tag: 'addressRequest',
+                    callback: requestData.callback,
+                    k1: k1,
+                    metadata: requestData.metadata
+                }, null, 2)}</pre>`;
+            } else {
+                document.body.innerHTML = `<pre>${JSON.stringify({
+                    status: 'ERROR',
+                    reason: 'Invalid or expired request'
+                }, null, 2)}</pre>`;
+            }
+        }
+
+        function logReceivedAddress(address, requestData) {
+            const container = document.getElementById('received-addresses');
+            if (container.children[0]?.tagName === 'P') {
+                container.innerHTML = '';
+            }
+
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <div class="log-time">${new Date().toLocaleTimeString()}</div>
+                <div><strong>Lightning Address:</strong> ${address}</div>
+                <div style="color: #9ca3af; font-size: 0.875rem;">Metadata: ${requestData.metadata}</div>
+            `;
+
+            container.insertBefore(entry, container.firstChild);
+        }
+    </script>
+</body>
+</html>

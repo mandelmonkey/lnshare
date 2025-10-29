@@ -1,0 +1,33 @@
+{
+  "name": "LNShare - Lightning Address Sharing",
+  "short_name": "LNShare",
+  "description": "Share your Lightning Address via QR code using LUD-22 protocol",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1f2937",
+  "theme_color": "#6366f1",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>⚡</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>⚡</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Scan QR Code",
+      "short_name": "Scan",
+      "description": "Scan a QR code to share your Lightning address",
+      "url": "/?action=scan"
+    }
+  ]
+}
