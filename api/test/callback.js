@@ -1,6 +1,8 @@
 // Vercel Serverless Function for LUD-22 callback endpoint
 // This receives the POST request with the Lightning address
 
+import { addAddress } from './storage.js';
+
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -36,6 +38,9 @@ export default async function handler(req, res) {
       reason: 'Invalid Lightning address format'
     });
   }
+
+  // Store the address
+  addAddress(address, k1, 'Test request');
 
   // Log to console (visible in Vercel logs)
   console.log('✅ Received Lightning Address:', address, 'k1:', k1);

@@ -2,6 +2,7 @@
   "name": "lnshare",
   "version": "1.0.0",
   "description": "Progressive Web App for sharing Lightning addresses via QR code using LUD-22 protocol",
+  "type": "module",
   "main": "test-server.js",
   "scripts": {
     "start": "node test-server.js",

@@ -362,7 +362,6 @@ class LNShareApp {
     document.getElementById('request-domain').textContent = this.currentRequest.domain;
     document.getElementById('request-metadata').textContent = this.currentRequest.metadata;
     document.getElementById('confirm-address').textContent = this.lightningAddress;
-    document.getElementById('request-url').textContent = this.scannedUrl;
     this.showScreen('confirmation');
   }
 
