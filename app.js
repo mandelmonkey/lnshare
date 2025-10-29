@@ -7,6 +7,8 @@ class LNShareApp {
     this.currentRequest = null;
     this.videoStream = null;
     this.scanningInterval = null;
+    this.lastError = null;
+    this.scannedUrl = null;
 
     this.screens = {
       setup: document.getElementById('setup-screen'),
@@ -125,12 +127,16 @@ class LNShareApp {
         throw new Error(`Cannot verify Lightning address (${response.status})`);
       }
 
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
+      // Read response as text first
+      const responseText = await response.text();
+
+      // Try to parse as JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
         throw new Error('Lightning address endpoint did not return valid JSON');
       }
-
-      const data = await response.json();
 
       // Basic LNURL-pay validation
       if (!data.callback || !data.minSendable || !data.maxSendable) {
@@ -224,6 +230,7 @@ class LNShareApp {
 
   async handleScannedCode(data) {
     this.stopScanning();
+    this.scannedUrl = data;
 
     try {
       // Parse the scanned URL
@@ -231,7 +238,12 @@ class LNShareApp {
       try {
         url = new URL(data);
       } catch (e) {
-        this.showError('Invalid QR code: not a valid URL');
+        this.lastError = {
+          message: 'Invalid QR code: not a valid URL',
+          url: data,
+          details: 'The scanned QR code does not contain a valid URL'
+        };
+        this.showErrorWithDebug('Invalid QR code: not a valid URL');
         this.showScreen('main');
         return;
       }
@@ -240,14 +252,24 @@ class LNShareApp {
 
       // Check if this is an addressRequest
       if (params.get('tag') !== 'addressRequest') {
-        this.showError('This QR code is not a Lightning address request');
+        this.lastError = {
+          message: 'This QR code is not a Lightning address request',
+          url: data,
+          details: `Missing or incorrect 'tag' parameter. Expected 'addressRequest', got '${params.get('tag')}'`
+        };
+        this.showErrorWithDebug('This QR code is not a Lightning address request');
         this.showScreen('main');
         return;
       }
 
       const k1 = params.get('k1');
       if (!k1) {
-        this.showError('Invalid request: missing k1 parameter');
+        this.lastError = {
+          message: 'Invalid request: missing k1 parameter',
+          url: data,
+          details: 'The LUD-22 request is missing the required k1 parameter'
+        };
+        this.showErrorWithDebug('Invalid request: missing k1 parameter');
         this.showScreen('main');
         return;
       }
@@ -256,23 +278,48 @@ class LNShareApp {
       const response = await fetch(url.toString());
 
       if (!response.ok) {
+        const errorText = await response.text();
+        this.lastError = {
+          message: `Server returned ${response.status}`,
+          url: url.toString(),
+          details: `HTTP ${response.status}: ${errorText.substring(0, 200)}`
+        };
         throw new Error(`Server returned ${response.status}`);
       }
 
-      // Check if response is JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Server did not return JSON. Is this a valid LUD-22 endpoint?');
-      }
+      // Read response as text first
+      const responseText = await response.text();
 
-      const requestData = await response.json();
+      // Try to parse as JSON
+      let requestData;
+      try {
+        requestData = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', responseText);
+        this.lastError = {
+          message: 'Server did not return valid JSON',
+          url: url.toString(),
+          details: `Response was: ${responseText.substring(0, 200)}`
+        };
+        throw new Error(`Server did not return valid JSON. Got: ${responseText.substring(0, 100)}...`);
+      }
 
       // Validate response
       if (requestData.tag !== 'addressRequest') {
+        this.lastError = {
+          message: 'Invalid response: wrong tag',
+          url: url.toString(),
+          details: `Response: ${JSON.stringify(requestData)}`
+        };
         throw new Error('Invalid response: wrong tag');
       }
 
       if (!requestData.callback || !requestData.k1) {
+        this.lastError = {
+          message: 'Invalid response: missing required fields',
+          url: url.toString(),
+          details: `Response: ${JSON.stringify(requestData)}`
+        };
         throw new Error('Invalid response: missing required fields');
       }
 
@@ -289,7 +336,14 @@ class LNShareApp {
 
     } catch (error) {
       console.error('Error processing scanned code:', error);
-      this.showError(`Error: ${error.message}`);
+      if (!this.lastError) {
+        this.lastError = {
+          message: error.message,
+          url: data,
+          details: error.stack || 'No additional details'
+        };
+      }
+      this.showErrorWithDebug(`Error: ${error.message}`);
       this.showScreen('main');
     }
   }
@@ -298,7 +352,84 @@ class LNShareApp {
     document.getElementById('request-domain').textContent = this.currentRequest.domain;
     document.getElementById('request-metadata').textContent = this.currentRequest.metadata;
     document.getElementById('confirm-address').textContent = this.lightningAddress;
+    document.getElementById('request-url').textContent = this.scannedUrl;
     this.showScreen('confirmation');
+  }
+
+  async copyToClipboard(text, button) {
+    try {
+      await navigator.clipboard.writeText(text);
+      const originalText = button.textContent;
+      button.textContent = '✓ Copied!';
+      setTimeout(() => {
+        button.textContent = originalText;
+      }, 2000);
+    } catch (error) {
+      this.showError('Failed to copy to clipboard');
+    }
+  }
+
+  showErrorWithDebug(message) {
+    this.showError(message + ' (Tap to see details)');
+
+    // Add click handler to toast to show debug info
+    const toast = document.getElementById('error-toast');
+    const clickHandler = () => {
+      toast.removeEventListener('click', clickHandler);
+      this.showDebugInfo();
+    };
+    toast.addEventListener('click', clickHandler);
+  }
+
+  showDebugInfo() {
+    if (!this.lastError) return;
+
+    const debugInfo = `
+ERROR DETAILS
+=============
+
+Message: ${this.lastError.message}
+
+URL: ${this.lastError.url}
+
+Details: ${this.lastError.details}
+
+Timestamp: ${new Date().toISOString()}
+    `.trim();
+
+    // Show in a result screen format
+    const resultContent = document.getElementById('result-content');
+    resultContent.innerHTML = `
+      <div class="result-icon">⚠️</div>
+      <div class="result-message">
+        <h3>Debug Information</h3>
+        <div class="debug-info">
+          <pre>${debugInfo}</pre>
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="app.copyDebugInfo()">Copy Debug Info</button>
+    `;
+    this.showScreen('result');
+  }
+
+  async copyDebugInfo() {
+    if (!this.lastError) return;
+
+    const debugInfo = `LNShare Debug Info
+==================
+
+Error: ${this.lastError.message}
+URL: ${this.lastError.url}
+Details: ${this.lastError.details}
+Timestamp: ${new Date().toISOString()}
+User Agent: ${navigator.userAgent}`;
+
+    try {
+      await navigator.clipboard.writeText(debugInfo);
+      this.showError('✓ Debug info copied to clipboard!');
+    } catch (error) {
+      this.showError('Failed to copy. Try selecting the text manually.');
+    }
   }
 
   async confirmShare() {
@@ -319,13 +450,17 @@ class LNShareApp {
         throw new Error(`Server returned ${response.status}`);
       }
 
-      // Check if response is JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Server did not return JSON response');
-      }
+      // Read response as text first
+      const responseText = await response.text();
 
-      const result = await response.json();
+      // Try to parse as JSON
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', responseText);
+        throw new Error(`Server did not return valid JSON. Got: ${responseText.substring(0, 100)}...`);
+      }
 
       if (result.status === 'OK') {
         this.showResult('success', 'Address Shared Successfully',
@@ -383,10 +518,11 @@ class LNShareApp {
 }
 
 // Initialize app when DOM is ready
+let app;
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    new LNShareApp();
+    app = new LNShareApp();
   });
 } else {
-  new LNShareApp();
+  app = new LNShareApp();
 }
