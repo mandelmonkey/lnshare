@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lnshare-v1';
+const CACHE_NAME = 'lnshare-v2';
 const ASSETS = [
   '/',
   '/index.html',
@@ -39,27 +39,51 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      if (response) {
-        return response;
-      }
+  // Use network-first strategy for HTML and JS files to ensure freshness
+  const url = new URL(event.request.url);
+  const isAppFile = url.pathname.endsWith('.html') ||
+                    url.pathname.endsWith('.js') ||
+                    url.pathname === '/';
 
-      return fetch(event.request).then((response) => {
-        // Don't cache non-successful responses
-        if (!response || response.status !== 200 || response.type === 'error') {
+  if (isAppFile) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // Cache the new version
+          if (response && response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          // Fall back to cache if network fails
+          return caches.match(event.request);
+        })
+    );
+  } else {
+    // Use cache-first for other assets (CSS, images, etc.)
+    event.respondWith(
+      caches.match(event.request).then((response) => {
+        if (response) {
           return response;
         }
 
-        // Clone the response
-        const responseToCache = response.clone();
+        return fetch(event.request).then((response) => {
+          if (!response || response.status !== 200 || response.type === 'error') {
+            return response;
+          }
 
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache);
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+
+          return response;
         });
-
-        return response;
-      });
-    })
-  );
+      })
+    );
+  }
 });
