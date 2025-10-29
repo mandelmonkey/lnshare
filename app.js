@@ -97,8 +97,9 @@ class LNShareApp {
     }
   }
 
-  saveAddress() {
+  async saveAddress() {
     const input = document.getElementById('lightning-address-input');
+    const button = document.getElementById('save-address-btn');
     const address = input.value.trim();
 
     if (!this.validateLightningAddress(address)) {
@@ -106,10 +107,58 @@ class LNShareApp {
       return;
     }
 
-    this.lightningAddress = address;
-    localStorage.setItem('lightningAddress', address);
-    document.getElementById('stored-address').textContent = address;
-    this.showScreen('main');
+    // Show loading state
+    button.disabled = true;
+    button.textContent = 'Validating...';
+
+    try {
+      // Validate that the Lightning address endpoint exists
+      const [username, domain] = address.split('@');
+      const lnurlEndpoint = `https://${domain}/.well-known/lnurlp/${username}`;
+
+      const response = await fetch(lnurlEndpoint, {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Cannot verify Lightning address (${response.status})`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Lightning address endpoint did not return valid JSON');
+      }
+
+      const data = await response.json();
+
+      // Basic LNURL-pay validation
+      if (!data.callback || !data.minSendable || !data.maxSendable) {
+        throw new Error('Lightning address endpoint returned invalid data');
+      }
+
+      // Success - save the address
+      this.lightningAddress = address;
+      localStorage.setItem('lightningAddress', address);
+      document.getElementById('stored-address').textContent = address;
+      this.showScreen('main');
+
+    } catch (error) {
+      console.error('Validation error:', error);
+      this.showError(`Validation failed: ${error.message}. Address saved anyway.`);
+
+      // Save anyway but warn the user
+      this.lightningAddress = address;
+      localStorage.setItem('lightningAddress', address);
+      document.getElementById('stored-address').textContent = address;
+
+      setTimeout(() => {
+        this.showScreen('main');
+      }, 3000);
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Save Address';
+    }
   }
 
   changeAddress() {
@@ -178,7 +227,15 @@ class LNShareApp {
 
     try {
       // Parse the scanned URL
-      const url = new URL(data);
+      let url;
+      try {
+        url = new URL(data);
+      } catch (e) {
+        this.showError('Invalid QR code: not a valid URL');
+        this.showScreen('main');
+        return;
+      }
+
       const params = new URLSearchParams(url.search);
 
       // Check if this is an addressRequest
@@ -199,7 +256,13 @@ class LNShareApp {
       const response = await fetch(url.toString());
 
       if (!response.ok) {
-        throw new Error(`HTTP error ${response.status}`);
+        throw new Error(`Server returned ${response.status}`);
+      }
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server did not return JSON. Is this a valid LUD-22 endpoint?');
       }
 
       const requestData = await response.json();
@@ -252,6 +315,16 @@ class LNShareApp {
         })
       });
 
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}`);
+      }
+
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server did not return JSON response');
+      }
+
       const result = await response.json();
 
       if (result.status === 'OK') {
@@ -300,9 +373,12 @@ class LNShareApp {
     toast.textContent = message;
     toast.classList.remove('hidden', 'success');
 
+    // Show longer for longer messages
+    const duration = Math.max(4000, message.length * 50);
+
     setTimeout(() => {
       toast.classList.add('hidden');
-    }, 4000);
+    }, duration);
   }
 }
 
