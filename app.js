@@ -22,10 +22,32 @@ class LNShareApp {
   }
 
   init() {
-    // Register service worker
+    // Register service worker with update detection
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch((err) => {
+      navigator.serviceWorker.register('/sw.js').then((registration) => {
+        // Check for updates every 30 seconds
+        setInterval(() => {
+          registration.update();
+        }, 30000);
+
+        // Listen for new service worker
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New version available
+              this.showUpdateBanner();
+            }
+          });
+        });
+      }).catch((err) => {
         console.log('Service Worker registration failed:', err);
+      });
+
+      // Listen for controller change (new SW activated)
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        // Reload when new SW takes control
+        window.location.reload();
       });
     }
 
@@ -523,6 +545,20 @@ User Agent: ${navigator.userAgent}`;
     setTimeout(() => {
       toast.classList.add('hidden');
     }, duration);
+  }
+
+  showUpdateBanner() {
+    const banner = document.getElementById('update-banner');
+    banner.classList.remove('hidden');
+  }
+
+  reloadApp() {
+    // Tell the waiting service worker to take over
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+    } else {
+      window.location.reload();
+    }
   }
 }
 

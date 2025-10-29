@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear Cache - LNShare</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 2rem;
+            line-height: 1.6;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #6366f1;
+            margin-bottom: 1rem;
+        }
+        .card {
+            background: #374151;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            border: 1px solid #4b5563;
+        }
+        ol, ul {
+            margin-left: 1.5rem;
+            margin-top: 0.5rem;
+        }
+        li {
+            margin-bottom: 0.5rem;
+        }
+        button {
+            padding: 0.875rem 1.5rem;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .success {
+            background: #10b981;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            display: none;
+        }
+        code {
+            background: #1f2937;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>⚡ Clear LNShare Cache</h1>
+
+    <div class="card">
+        <h2>Quick Fix</h2>
+        <button onclick="clearCache()">Clear All Cache & Reload</button>
+        <div id="success" class="success">✅ Cache cleared! Reloading...</div>
+    </div>
+
+    <div class="card">
+        <h2>Manual Steps (iOS Safari)</h2>
+        <ol>
+            <li>Close the LNShare app completely</li>
+            <li>Open <strong>Settings</strong> app</li>
+            <li>Scroll down to <strong>Safari</strong></li>
+            <li>Tap <strong>Advanced</strong></li>
+            <li>Tap <strong>Website Data</strong></li>
+            <li>Search for <code>lnshare</code></li>
+            <li>Swipe left and tap <strong>Delete</strong></li>
+            <li>Go back and revisit the app</li>
+        </ol>
+    </div>
+
+    <div class="card">
+        <h2>Manual Steps (Android Chrome)</h2>
+        <ol>
+            <li>Long-press the LNShare app icon</li>
+            <li>Tap <strong>App info</strong></li>
+            <li>Tap <strong>Storage</strong></li>
+            <li>Tap <strong>Clear storage</strong> and <strong>Clear cache</strong></li>
+            <li>Go back and revisit the app</li>
+        </ol>
+    </div>
+
+    <div class="card">
+        <h2>Alternative: Force Refresh</h2>
+        <ol>
+            <li>Open the app in your browser (not as PWA)</li>
+            <li><strong>iOS:</strong> Pull down to refresh</li>
+            <li><strong>Android:</strong> Pull down to refresh, or long-press reload button</li>
+            <li>The new version should load</li>
+        </ol>
+    </div>
+
+    <script>
+        async function clearCache() {
+            try {
+                // Unregister all service workers
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                    }
+                }
+
+                // Clear all caches
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(
+                        cacheNames.map(cacheName => caches.delete(cacheName))
+                    );
+                }
+
+                // Show success
+                document.getElementById('success').style.display = 'block';
+
+                // Reload after 1 second
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
+            } catch (error) {
+                alert('Error clearing cache: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lnshare-v2';
+const CACHE_NAME = 'lnshare-v2.0.0';
 const ASSETS = [
   '/',
   '/index.html',
@@ -9,6 +9,13 @@ const ASSETS = [
   '/manifest.json'
 ];
 
+// Listen for SKIP_WAITING message
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
@@ -17,7 +24,7 @@ self.addEventListener('install', (event) => {
       });
     })
   );
-  self.skipWaiting();
+  // Don't auto-skip waiting - let the user decide via update banner
 });
 
 self.addEventListener('activate', (event) => {

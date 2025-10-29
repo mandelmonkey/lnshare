@@ -15,6 +15,7 @@
         <header>
             <h1>⚡ LNShare</h1>
             <p class="subtitle">Share your Lightning Address via QR</p>
+            <p class="version" id="app-version">v2.0.0</p>
         </header>
 
         <main id="app">
@@ -106,6 +107,10 @@
         </main>
 
         <div id="error-toast" class="toast hidden"></div>
+        <div id="update-banner" class="update-banner hidden">
+            <p>New version available!</p>
+            <button onclick="app.reloadApp()">Update Now</button>
+        </div>
     </div>
 
     <script src="qr-scanner.min.js"></script>
