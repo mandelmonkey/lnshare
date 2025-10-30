@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lnshare-v2.0.5';
+const CACHE_NAME = 'lnshare-v2.0.6';
 const ASSETS = [
   '/',
   '/index.html',
@@ -48,6 +48,22 @@ self.addEventListener('fetch', (event) => {
 
   // Use network-first strategy for HTML and JS files to ensure freshness
   const url = new URL(event.request.url);
+
+  // Exclude test/admin pages from service worker caching
+  const excludedPages = [
+    '/test-generator.html',
+    '/test-generator',
+    '/test-page.html',
+    '/test-page',
+    '/clear-cache.html',
+    '/clear-cache'
+  ];
+
+  if (excludedPages.includes(url.pathname)) {
+    // Don't use service worker for these pages - let them be normal web pages
+    return;
+  }
+
   const isAppFile = url.pathname.endsWith('.html') ||
                     url.pathname.endsWith('.js') ||
                     url.pathname === '/';

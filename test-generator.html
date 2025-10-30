@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Disable all caching -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
     <title>LNShare Test Generator</title>
     <style>
         * {
@@ -247,15 +253,27 @@
     <!-- Toast notification -->
     <div id="toast" class="toast"></div>
 
-    <script src="qrcode.min.js"></script>
+    <script src="qrcode.min.js?v=1.0"></script>
     <script>
         let autoRefreshInterval = null;
         let lastAddressCount = 0;
+        let qrGeneratedTimestamp = null;
 
         // Generate QR code
         async function generateQR() {
             const metadata = document.getElementById('metadata').value;
             const qrDisplay = document.getElementById('qr-display');
+
+            // Clear old addresses display and set timestamp
+            lastAddressCount = 0;
+            qrGeneratedTimestamp = Date.now();
+            const container = document.getElementById('received-addresses');
+            container.innerHTML = `
+                <p style="color: #9ca3af;">No addresses received yet. Scan the QR code above with LNShare.</p>
+                <p style="color: #6366f1; font-size: 0.875rem; margin-top: 0.5rem;">
+                    ℹ️ Waiting for scan...
+                </p>
+            `;
 
             // Show loading
             qrDisplay.innerHTML = '<p style="color: #1f2937;">Generating...</p>';
@@ -334,7 +352,12 @@
 
                 const container = document.getElementById('received-addresses');
 
-                if (data.addresses.length === 0) {
+                // Filter addresses to only show ones received after QR was generated
+                const relevantAddresses = qrGeneratedTimestamp
+                    ? data.addresses.filter(item => item.timestamp >= qrGeneratedTimestamp)
+                    : data.addresses;
+
+                if (relevantAddresses.length === 0) {
                     container.innerHTML = `
                         <p style="color: #9ca3af;">No addresses received yet. Scan the QR code above with LNShare.</p>
                         <p style="color: #6366f1; font-size: 0.875rem; margin-top: 0.5rem;">
@@ -346,8 +369,8 @@
                 }
 
                 // Show toast notification if new address received
-                if (data.addresses.length > lastAddressCount && lastAddressCount > 0) {
-                    const newAddresses = data.addresses.slice(0, data.addresses.length - lastAddressCount);
+                if (relevantAddresses.length > lastAddressCount && lastAddressCount > 0) {
+                    const newAddresses = relevantAddresses.slice(0, relevantAddresses.length - lastAddressCount);
                     newAddresses.forEach(item => {
                         showToast(`✅ Received address: ${item.address}`);
                     });
@@ -358,15 +381,15 @@
                         qrDisplay.style.display = 'none';
                     }
                 }
-                lastAddressCount = data.addresses.length;
+                lastAddressCount = relevantAddresses.length;
 
                 container.innerHTML = `
                     <p style="color: #10b981; margin-bottom: 1rem;">
-                        ✅ Found ${data.addresses.length} address(es)
+                        ✅ Found ${relevantAddresses.length} address(es)
                     </p>
                 `;
 
-                data.addresses.forEach(item => {
+                relevantAddresses.forEach(item => {
                     const entry = document.createElement('div');
                     entry.className = 'log-entry';
                     entry.innerHTML = `
@@ -411,8 +434,8 @@
             }
         }
 
-        // Check on page load
-        checkReceivedAddresses();
+        // Don't check on page load - wait for user to generate QR
+        // checkReceivedAddresses();
     </script>
 </body>
 </html>
