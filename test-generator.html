@@ -315,8 +315,14 @@
 
                 // Start auto-refresh if not already running
                 if (!autoRefreshInterval) {
+                    console.log('Starting auto-refresh...');
                     toggleAutoRefresh();
+                } else {
+                    console.log('Auto-refresh already running');
                 }
+
+                // Also check immediately
+                checkReceivedAddresses();
             } catch (error) {
                 qrDisplay.innerHTML = `<p style="color: #ef4444;">Error generating QR code: ${error.message}</p>`;
             }
@@ -349,13 +355,23 @@
 
                 const data = await response.json();
                 console.log('Received data:', data);
+                console.log('QR generated timestamp:', qrGeneratedTimestamp);
+                console.log('All addresses:', data.addresses);
 
                 const container = document.getElementById('received-addresses');
 
                 // Filter addresses to only show ones received after QR was generated
+                // Use a small buffer (5 seconds) to account for time differences
+                const timestampBuffer = 5000; // 5 seconds
                 const relevantAddresses = qrGeneratedTimestamp
-                    ? data.addresses.filter(item => item.timestamp >= qrGeneratedTimestamp)
+                    ? data.addresses.filter(item => {
+                        const isRelevant = item.timestamp >= (qrGeneratedTimestamp - timestampBuffer);
+                        console.log(`Address ${item.address} timestamp: ${item.timestamp}, threshold: ${qrGeneratedTimestamp - timestampBuffer}, relevant: ${isRelevant}`);
+                        return isRelevant;
+                    })
                     : data.addresses;
+
+                console.log('Relevant addresses:', relevantAddresses);
 
                 if (relevantAddresses.length === 0) {
                     container.innerHTML = `
@@ -422,12 +438,17 @@
             const btn = document.getElementById('auto-refresh-btn');
 
             if (autoRefreshInterval) {
+                console.log('Disabling auto-refresh');
                 clearInterval(autoRefreshInterval);
                 autoRefreshInterval = null;
                 btn.textContent = 'Enable Auto-Refresh';
                 btn.style.background = '#374151';
             } else {
-                autoRefreshInterval = setInterval(checkReceivedAddresses, 2000);
+                console.log('Enabling auto-refresh');
+                autoRefreshInterval = setInterval(() => {
+                    console.log('Auto-refresh tick...');
+                    checkReceivedAddresses();
+                }, 2000);
                 btn.textContent = 'Disable Auto-Refresh';
                 btn.style.background = '#6366f1';
                 checkReceivedAddresses(); // Check immediately
