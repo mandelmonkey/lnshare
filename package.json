@@ -23,6 +23,7 @@
     "url": ""
   },
   "dependencies": {
+    "@upstash/redis": "^1.35.6",
     "qrcode": "^1.5.4"
   }
 }

@@ -1,33 +1,56 @@
-// Unified test endpoint - all routes in one function to share memory
-// This ensures storage persists across different route calls
+// Unified test endpoint - all routes in one function
+// Uses Upstash Redis for persistent storage across instances
 
-// Use globalThis to persist storage across invocations
-if (!globalThis.__lnshareStorage) {
-  globalThis.__lnshareStorage = [];
-}
+import { Redis } from '@upstash/redis';
 
-function addAddress(address, k1, metadata) {
-  console.log('Adding address to storage:', address);
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
 
-  globalThis.__lnshareStorage.unshift({
-    address,
-    k1,
-    metadata,
-    timestamp: new Date().toISOString(),
-    time: Date.now()
-  });
+const STORAGE_KEY = 'lnshare:addresses';
+const MAX_ADDRESSES = 20;
 
-  // Keep only last 20 addresses
-  if (globalThis.__lnshareStorage.length > 20) {
-    globalThis.__lnshareStorage.pop();
+async function addAddress(address, k1, metadata) {
+  console.log('Adding address to Upstash Redis:', address);
+
+  try {
+    // Get existing addresses
+    let addresses = await redis.get(STORAGE_KEY) || [];
+
+    // Add new address at the beginning
+    addresses.unshift({
+      address,
+      k1,
+      metadata,
+      timestamp: new Date().toISOString(),
+      time: Date.now()
+    });
+
+    // Keep only last 20 addresses
+    if (addresses.length > MAX_ADDRESSES) {
+      addresses = addresses.slice(0, MAX_ADDRESSES);
+    }
+
+    // Save back to Redis
+    await redis.set(STORAGE_KEY, addresses);
+
+    console.log('Redis storage now has', addresses.length, 'addresses');
+  } catch (error) {
+    console.error('Error adding to Redis:', error);
+    throw error;
   }
-
-  console.log('Storage now has', globalThis.__lnshareStorage.length, 'addresses');
 }
 
-function getRecentAddresses(limit = 10) {
-  console.log('Getting recent addresses, storage has', globalThis.__lnshareStorage.length, 'addresses');
-  return globalThis.__lnshareStorage.slice(0, limit);
+async function getRecentAddresses(limit = 10) {
+  try {
+    const addresses = await redis.get(STORAGE_KEY) || [];
+    console.log('Getting recent addresses from Redis, found', addresses.length, 'addresses');
+    return addresses.slice(0, limit);
+  } catch (error) {
+    console.error('Error reading from Redis:', error);
+    return [];
+  }
 }
 
 export default async function handler(req, res) {
@@ -117,11 +140,10 @@ export default async function handler(req, res) {
     }
 
     // Store the address
-    addAddress(address, k1, 'Test request');
+    await addAddress(address, k1, 'Test request');
 
     // Log to console (visible in Vercel logs)
     console.log('✅ Received Lightning Address:', address, 'k1:', k1);
-    console.log('Storage after adding:', globalThis.__lnshareStorage.length, 'addresses');
 
     // Return success
     return res.status(200).json({
@@ -132,7 +154,7 @@ export default async function handler(req, res) {
   // Route: /api/test?route=received - Get received addresses
   if (route === 'received' && req.method === 'GET') {
     const limit = parseInt(req.query.limit) || 10;
-    const addresses = getRecentAddresses(limit);
+    const addresses = await getRecentAddresses(limit);
 
     console.log(`Received request for addresses. Storage has ${addresses.length} addresses:`, addresses);
 
