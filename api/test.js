@@ -3,15 +3,53 @@
 
 import { Redis } from '@upstash/redis';
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
-});
-
 const STORAGE_KEY = 'lnshare:addresses';
 const MAX_ADDRESSES = 20;
 
+// Initialize Redis only if credentials are provided
+let redis = null;
+let useInMemoryFallback = false;
+
+// Support both naming conventions
+const REDIS_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+const REDIS_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+
+if (REDIS_URL && REDIS_TOKEN) {
+  redis = new Redis({
+    url: REDIS_URL,
+    token: REDIS_TOKEN,
+  });
+  console.log('✅ Upstash Redis initialized with URL:', REDIS_URL);
+} else {
+  console.warn('⚠️ Redis credentials not set. Looking for KV_REST_API_URL/KV_REST_API_TOKEN or UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN. Using in-memory fallback (not persistent).');
+  console.warn('Available env vars:', Object.keys(process.env).filter(k => k.includes('REDIS') || k.includes('KV')));
+  useInMemoryFallback = true;
+}
+
+// Fallback in-memory storage (not persistent across instances)
+if (!globalThis.__lnshareStorage) {
+  globalThis.__lnshareStorage = [];
+}
+
 async function addAddress(address, k1, metadata) {
+  const newAddress = {
+    address,
+    k1,
+    metadata,
+    timestamp: new Date().toISOString(),
+    time: Date.now()
+  };
+
+  if (useInMemoryFallback) {
+    console.log('Adding address to in-memory storage (fallback):', address);
+    globalThis.__lnshareStorage.unshift(newAddress);
+    if (globalThis.__lnshareStorage.length > MAX_ADDRESSES) {
+      globalThis.__lnshareStorage.pop();
+    }
+    console.log('In-memory storage now has', globalThis.__lnshareStorage.length, 'addresses');
+    return;
+  }
+
   console.log('Adding address to Upstash Redis:', address);
 
   try {
@@ -19,13 +57,7 @@ async function addAddress(address, k1, metadata) {
     let addresses = await redis.get(STORAGE_KEY) || [];
 
     // Add new address at the beginning
-    addresses.unshift({
-      address,
-      k1,
-      metadata,
-      timestamp: new Date().toISOString(),
-      time: Date.now()
-    });
+    addresses.unshift(newAddress);
 
     // Keep only last 20 addresses
     if (addresses.length > MAX_ADDRESSES) {
@@ -43,6 +75,11 @@ async function addAddress(address, k1, metadata) {
 }
 
 async function getRecentAddresses(limit = 10) {
+  if (useInMemoryFallback) {
+    console.log('Getting addresses from in-memory storage (fallback), found', globalThis.__lnshareStorage.length, 'addresses');
+    return globalThis.__lnshareStorage.slice(0, limit);
+  }
+
   try {
     const addresses = await redis.get(STORAGE_KEY) || [];
     console.log('Getting recent addresses from Redis, found', addresses.length, 'addresses');
