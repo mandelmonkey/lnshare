@@ -305,12 +305,12 @@
                 setTimeout(() => {
                     new QRCode(document.getElementById('qrcode-display'), {
                         text: requestUrl,
-                        width: 400,
-                        height: 400,
+                        width: 512,  // Larger for better scanning
+                        height: 512,
                         colorDark: '#000000',
                         colorLight: '#ffffff',
-                        correctLevel: QRCode.CorrectLevel.M,
-                        margin: 4
+                        correctLevel: QRCode.CorrectLevel.H,  // High error correction
+                        margin: 6  // More whitespace for better detection
                     });
                 }, 100);
 
