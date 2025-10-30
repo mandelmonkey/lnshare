@@ -342,13 +342,12 @@
                 const response = await fetch(`/api/test?route=received&_t=${cacheBuster}`);
 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
+                    console.error(`API returned ${response.status}`);
+                    return; // Don't throw, just return to keep interval running
                 }
 
                 const data = await response.json();
-                console.log('Received data:', data);
-                console.log('QR generated timestamp:', qrGeneratedTimestamp);
-                console.log('All addresses:', data.addresses);
+                console.log('✓ Checked at', new Date().toLocaleTimeString(), '- Found', data.count, 'addresses');
 
                 const container = document.getElementById('received-addresses');
 
@@ -359,12 +358,9 @@
                     ? data.addresses.filter(item => {
                         // Use item.time (numeric timestamp) not item.timestamp (ISO string)
                         const isRelevant = item.time >= (qrGeneratedTimestamp - timestampBuffer);
-                        console.log(`Address ${item.address} time: ${item.time}, threshold: ${qrGeneratedTimestamp - timestampBuffer}, relevant: ${isRelevant}`);
                         return isRelevant;
                     })
                     : data.addresses;
-
-                console.log('Relevant addresses:', relevantAddresses);
 
                 if (relevantAddresses.length === 0) {
                     container.innerHTML = `
@@ -416,13 +412,8 @@
                 });
             } catch (error) {
                 console.error('Error checking received addresses:', error);
-                const container = document.getElementById('received-addresses');
-                container.innerHTML = `
-                    <p style="color: #ef4444;">Error checking addresses: ${error.message}</p>
-                    <p style="color: #9ca3af; font-size: 0.875rem; margin-top: 0.5rem;">
-                        Check browser console for details.
-                    </p>
-                `;
+                // Don't update UI on error, just log and continue
+                // This prevents the interval from stopping due to errors
             }
         }
 
@@ -448,13 +439,20 @@
         }
 
         // Start auto-refresh on page load - simple continuous loop
+        console.log('🔄 Starting continuous auto-refresh (every 3 seconds)');
         autoRefreshInterval = setInterval(() => {
             checkReceivedAddresses();
         }, 3000); // Check every 3 seconds continuously
 
+        // Check immediately on page load
+        checkReceivedAddresses();
+
         // Update button state to show auto-refresh is on
         document.getElementById('auto-refresh-btn').textContent = 'Disable Auto-Refresh';
         document.getElementById('auto-refresh-btn').style.background = '#6366f1';
+
+        // Debug: Log that interval is set
+        console.log('✓ Auto-refresh interval ID:', autoRefreshInterval);
     </script>
 </body>
 </html>
