@@ -40,7 +40,7 @@
       ]
     },
     {
-      "source": "/(.*\\.(js|css|html|json))",
+      "source": "/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
