@@ -173,6 +173,8 @@
             <h2>Received Lightning Addresses</h2>
             <div class="info">
                 Addresses will appear here when someone scans the QR code and confirms sharing.
+                <br><br>
+                <strong>Note:</strong> On Vercel, serverless functions are stateless. Addresses are stored temporarily in memory but may not persist between requests. Check the <a href="https://vercel.com/your-username/lnshare/logs" target="_blank" style="color: #6366f1;">Vercel function logs</a> for a permanent record of received addresses.
             </div>
 
             <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
@@ -267,14 +269,26 @@
                 }
 
                 const data = await response.json();
+                console.log('Received data:', data);
+
                 const container = document.getElementById('received-addresses');
 
                 if (data.addresses.length === 0) {
-                    container.innerHTML = '<p style="color: #9ca3af;">No addresses received yet. Scan the QR code above with LNShare.</p>';
+                    container.innerHTML = `
+                        <p style="color: #9ca3af;">No addresses received yet. Scan the QR code above with LNShare.</p>
+                        <p style="color: #6366f1; font-size: 0.875rem; margin-top: 0.5rem;">
+                            ℹ️ Last checked: ${new Date().toLocaleTimeString()}
+                        </p>
+                    `;
                     return;
                 }
 
-                container.innerHTML = '';
+                container.innerHTML = `
+                    <p style="color: #10b981; margin-bottom: 1rem;">
+                        ✅ Found ${data.addresses.length} address(es)
+                    </p>
+                `;
+
                 data.addresses.forEach(item => {
                     const entry = document.createElement('div');
                     entry.className = 'log-entry';
@@ -293,6 +307,13 @@
                 });
             } catch (error) {
                 console.error('Error checking received addresses:', error);
+                const container = document.getElementById('received-addresses');
+                container.innerHTML = `
+                    <p style="color: #ef4444;">Error checking addresses: ${error.message}</p>
+                    <p style="color: #9ca3af; font-size: 0.875rem; margin-top: 0.5rem;">
+                        Check browser console for details.
+                    </p>
+                `;
             }
         }
 

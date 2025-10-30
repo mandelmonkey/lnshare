@@ -1,10 +1,16 @@
 // Simple in-memory storage for test addresses
 // Note: This will reset on cold starts, but good enough for quick testing
+// Using global to persist across module instances in the same serverless function
 
-const receivedAddresses = [];
+// Use globalThis to ensure we're using the same storage across imports
+if (!globalThis.__lnshareStorage) {
+  globalThis.__lnshareStorage = [];
+}
 
 export function addAddress(address, k1, metadata) {
-  receivedAddresses.unshift({
+  console.log('Adding address to storage:', address);
+
+  globalThis.__lnshareStorage.unshift({
     address,
     k1,
     metadata,
@@ -13,15 +19,18 @@ export function addAddress(address, k1, metadata) {
   });
 
   // Keep only last 20 addresses
-  if (receivedAddresses.length > 20) {
-    receivedAddresses.pop();
+  if (globalThis.__lnshareStorage.length > 20) {
+    globalThis.__lnshareStorage.pop();
   }
+
+  console.log('Storage now has', globalThis.__lnshareStorage.length, 'addresses');
 }
 
 export function getRecentAddresses(limit = 10) {
-  return receivedAddresses.slice(0, limit);
+  console.log('Getting recent addresses, storage has', globalThis.__lnshareStorage.length, 'addresses');
+  return globalThis.__lnshareStorage.slice(0, limit);
 }
 
 export function clearAddresses() {
-  receivedAddresses.length = 0;
+  globalThis.__lnshareStorage.length = 0;
 }
