@@ -22,6 +22,24 @@ class LNShareApp {
   }
 
   init() {
+    // Check for version mismatch (cached old HTML)
+    const versionEl = document.getElementById('app-version');
+    const expectedVersion = 'v2.0.1';
+
+    if (!versionEl || !versionEl.textContent.includes(expectedVersion)) {
+      console.warn('Version mismatch detected. Current:', versionEl?.textContent, 'Expected:', expectedVersion);
+      // Check if we've already tried to reload
+      const reloadAttempts = parseInt(sessionStorage.getItem('reloadAttempts') || '0');
+      if (reloadAttempts < 3) {
+        sessionStorage.setItem('reloadAttempts', (reloadAttempts + 1).toString());
+        this.forceCacheReload();
+        return;
+      }
+    } else {
+      // Version is correct, reset reload attempts
+      sessionStorage.removeItem('reloadAttempts');
+    }
+
     // Register service worker with update detection
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').then((registration) => {
@@ -381,9 +399,21 @@ class LNShareApp {
   }
 
   showConfirmation() {
-    document.getElementById('request-domain').textContent = this.currentRequest.domain;
-    document.getElementById('request-metadata').textContent = this.currentRequest.metadata;
-    document.getElementById('confirm-address').textContent = this.lightningAddress;
+    // Check if all required elements exist (defensive check for cache issues)
+    const domainEl = document.getElementById('request-domain');
+    const metadataEl = document.getElementById('request-metadata');
+    const addressEl = document.getElementById('confirm-address');
+
+    if (!domainEl || !metadataEl || !addressEl) {
+      console.error('Missing confirmation screen elements - forcing hard reload');
+      // Clear cache and force reload
+      this.forceCacheReload();
+      return;
+    }
+
+    domainEl.textContent = this.currentRequest.domain;
+    metadataEl.textContent = this.currentRequest.metadata;
+    addressEl.textContent = this.lightningAddress;
     this.showScreen('confirmation');
   }
 
@@ -558,6 +588,37 @@ User Agent: ${navigator.userAgent}`;
       navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
     } else {
       window.location.reload();
+    }
+  }
+
+  async forceCacheReload() {
+    this.showError('Outdated version detected. Clearing cache and reloading...');
+
+    try {
+      // Unregister all service workers
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+          await registration.unregister();
+        }
+      }
+
+      // Clear all caches
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map(cacheName => caches.delete(cacheName))
+        );
+      }
+
+      // Force reload without cache
+      setTimeout(() => {
+        window.location.reload(true);
+      }, 1500);
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+      // Try to reload anyway
+      window.location.reload(true);
     }
   }
 }
