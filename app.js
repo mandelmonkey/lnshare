@@ -248,19 +248,6 @@ class LNShareApp {
       this.videoStream = await navigator.mediaDevices.getUserMedia(constraints);
       video.srcObject = this.videoStream;
 
-      // Enable torch if available
-      const track = this.videoStream.getVideoTracks()[0];
-      const capabilities = track.getCapabilities ? track.getCapabilities() : {};
-
-      if (capabilities.torch) {
-        try {
-          await track.applyConstraints({ advanced: [{ torch: true }] });
-          console.log('Torch enabled');
-        } catch (e) {
-          console.log('Could not enable torch:', e);
-        }
-      }
-
       // Start scanning loop with higher frequency
       this.scanningInterval = setInterval(() => {
         if (video.readyState === video.HAVE_ENOUGH_DATA) {
