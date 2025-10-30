@@ -40,11 +40,10 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const { pathname } = new URL(req.url, `https://${req.headers.host}`);
-  const path = pathname.replace('/api/test', '');
+  const route = req.query.route;
 
-  // Route: /api/test/create - Generate new test request
-  if (path === '/create' && req.method === 'GET') {
+  // Route: /api/test?route=create - Generate new test request
+  if (route === 'create' && req.method === 'GET') {
     const metadata = req.query.metadata || 'Test request from LNShare';
 
     // Generate random k1
@@ -124,8 +123,8 @@ export default async function handler(req, res) {
     });
   }
 
-  // Route: /api/test/received - Get received addresses
-  if (path === '/received' && req.method === 'GET') {
+  // Route: /api/test?route=received - Get received addresses
+  if (route === 'received' && req.method === 'GET') {
     const limit = parseInt(req.query.limit) || 10;
     const addresses = getRecentAddresses(limit);
 
@@ -138,6 +137,8 @@ export default async function handler(req, res) {
   // 404 for unknown routes
   return res.status(404).json({
     error: 'Not found',
-    path: pathname
+    route: route,
+    availableRoutes: ['create', 'request', 'callback', 'received'],
+    hint: 'Use ?route=<routeName>'
   });
 }

@@ -219,7 +219,7 @@
 
             try {
                 // Call the API to create a test request
-                const response = await fetch(`/api/test/create?metadata=${encodeURIComponent(metadata)}`);
+                const response = await fetch(`/api/test?route=create&metadata=${encodeURIComponent(metadata)}`);
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
@@ -262,7 +262,7 @@
         // Check for received addresses
         async function checkReceivedAddresses() {
             try {
-                const response = await fetch('/api/test/received');
+                const response = await fetch('/api/test?route=received');
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
