@@ -148,6 +148,33 @@
             max-height: 300px;
             overflow-y: auto;
         }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #10b981;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            font-weight: 600;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        .toast.error {
+            background: #ef4444;
+        }
     </style>
 </head>
 <body>
@@ -204,9 +231,13 @@
         </div>
     </div>
 
+    <!-- Toast notification -->
+    <div id="toast" class="toast"></div>
+
     <script src="qrcode.min.js"></script>
     <script>
         let autoRefreshInterval = null;
+        let lastAddressCount = 0;
 
         // Generate QR code
         async function generateQR() {
@@ -260,6 +291,17 @@
             }
         }
 
+        // Show toast notification
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast show' + (isError ? ' error' : '');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+
         // Check for received addresses
         async function checkReceivedAddresses() {
             try {
@@ -281,8 +323,18 @@
                             ℹ️ Last checked: ${new Date().toLocaleTimeString()}
                         </p>
                     `;
+                    lastAddressCount = 0;
                     return;
                 }
+
+                // Show toast notification if new address received
+                if (data.addresses.length > lastAddressCount && lastAddressCount > 0) {
+                    const newAddresses = data.addresses.slice(0, data.addresses.length - lastAddressCount);
+                    newAddresses.forEach(item => {
+                        showToast(`✅ Received address: ${item.address}`);
+                    });
+                }
+                lastAddressCount = data.addresses.length;
 
                 container.innerHTML = `
                     <p style="color: #10b981; margin-bottom: 1rem;">
