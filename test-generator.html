@@ -361,8 +361,8 @@
                 const container = document.getElementById('received-addresses');
 
                 // Filter addresses to only show ones received after QR was generated
-                // Use a small buffer (5 seconds) to account for time differences
-                const timestampBuffer = 5000; // 5 seconds
+                // Use a 10-minute buffer to show recent addresses even after page refresh
+                const timestampBuffer = 10 * 60 * 1000; // 10 minutes
                 const relevantAddresses = qrGeneratedTimestamp
                     ? data.addresses.filter(item => {
                         // Use item.time (numeric timestamp) not item.timestamp (ISO string)
