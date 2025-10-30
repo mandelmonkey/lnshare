@@ -10,7 +10,7 @@
     <meta http-equiv="Expires" content="0">
     <title>LNShare - Lightning Address Sharing</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="styles.css?v=2.0.2">
+    <link rel="stylesheet" href="styles.css?v=2.0.3">
     <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>⚡</text></svg>">
 </head>
 <body>
@@ -18,7 +18,7 @@
         <header>
             <h1>⚡ LNShare</h1>
             <p class="subtitle">Share your Lightning Address via QR</p>
-            <p class="version" id="app-version">v2.0.2</p>
+            <p class="version" id="app-version">v2.0.3</p>
         </header>
 
         <main id="app">
@@ -33,13 +33,11 @@
                             id="lightning-address-input"
                             placeholder="user@wallet.com"
                             autocomplete="off"
+                            autocapitalize="off"
                             spellcheck="false"
+                            style="text-transform: lowercase;"
                         >
                     </div>
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="skip-validation">
-                        <span>Skip validation (for testing)</span>
-                    </label>
                     <button id="save-address-btn" class="btn btn-primary">Save Address</button>
                 </div>
             </div>
@@ -117,6 +115,6 @@
     </div>
 
     <script src="qr-scanner.min.js"></script>
-    <script src="app.js?v=2.0.2"></script>
+    <script src="app.js?v=2.0.3"></script>
 </body>
 </html>

@@ -24,7 +24,7 @@ class LNShareApp {
   init() {
     // Check for version mismatch (cached old HTML)
     const versionEl = document.getElementById('app-version');
-    const expectedVersion = 'v2.0.2';
+    const expectedVersion = 'v2.0.3';
 
     if (!versionEl || !versionEl.textContent.includes(expectedVersion)) {
       console.warn('Version mismatch detected. Current:', versionEl?.textContent, 'Expected:', expectedVersion);
@@ -95,7 +95,17 @@ class LNShareApp {
       this.saveAddress();
     });
 
-    document.getElementById('lightning-address-input').addEventListener('keypress', (e) => {
+    const addressInput = document.getElementById('lightning-address-input');
+
+    // Force lowercase as user types
+    addressInput.addEventListener('input', (e) => {
+      const start = e.target.selectionStart;
+      const end = e.target.selectionEnd;
+      e.target.value = e.target.value.toLowerCase();
+      e.target.setSelectionRange(start, end);
+    });
+
+    addressInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') {
         this.saveAddress();
       }
@@ -142,20 +152,11 @@ class LNShareApp {
   async saveAddress() {
     const input = document.getElementById('lightning-address-input');
     const button = document.getElementById('save-address-btn');
-    const skipValidation = document.getElementById('skip-validation').checked;
-    const address = input.value.trim();
+    // Force lowercase
+    const address = input.value.trim().toLowerCase();
 
     if (!this.validateLightningAddress(address)) {
       this.showError('Please enter a valid Lightning address (user@domain.com)');
-      return;
-    }
-
-    // If skip validation is checked, save immediately
-    if (skipValidation) {
-      this.lightningAddress = address;
-      localStorage.setItem('lightningAddress', address);
-      document.getElementById('stored-address').textContent = address;
-      this.showScreen('main');
       return;
     }
 
