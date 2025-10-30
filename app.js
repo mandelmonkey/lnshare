@@ -24,7 +24,7 @@ class LNShareApp {
   init() {
     // Check for version mismatch (cached old HTML)
     const versionEl = document.getElementById('app-version');
-    const expectedVersion = 'v2.0.1';
+    const expectedVersion = 'v2.0.2';
 
     if (!versionEl || !versionEl.textContent.includes(expectedVersion)) {
       console.warn('Version mismatch detected. Current:', versionEl?.textContent, 'Expected:', expectedVersion);
