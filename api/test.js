@@ -42,10 +42,9 @@ export default async function handler(req, res) {
 
   const route = req.query.route;
 
-  // Helper to get base URL without www
+  // Helper to get base URL - use the host as-is to avoid CORS issues
   const getBaseUrl = () => {
-    const host = req.headers.host.replace(/^www\./, '');
-    return `https://${host}`;
+    return `https://${req.headers.host}`;
   };
 
   // Route: /api/test?route=create - Generate new test request
