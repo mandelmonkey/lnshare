@@ -313,15 +313,6 @@
                     });
                 }, 100);
 
-                // Ensure auto-refresh is running (start if not already running)
-                if (!autoRefreshInterval) {
-                    console.log('Starting auto-refresh...');
-                    toggleAutoRefresh();
-                } else {
-                    console.log('Auto-refresh already running - will continue checking');
-                    // Check immediately even if auto-refresh is already running
-                    checkReceivedAddresses();
-                }
             } catch (error) {
                 qrDisplay.innerHTML = `<p style="color: #ef4444;">Error generating QR code: ${error.message}</p>`;
             }
@@ -448,17 +439,22 @@
             } else {
                 console.log('Enabling auto-refresh');
                 autoRefreshInterval = setInterval(() => {
-                    console.log('Auto-refresh tick...');
                     checkReceivedAddresses();
-                }, 500); // Check every 500ms for faster response
+                }, 3000); // Check every 3 seconds
                 btn.textContent = 'Disable Auto-Refresh';
                 btn.style.background = '#6366f1';
                 checkReceivedAddresses(); // Check immediately
             }
         }
 
-        // Don't check on page load - wait for user to generate QR
-        // checkReceivedAddresses();
+        // Start auto-refresh on page load - simple continuous loop
+        autoRefreshInterval = setInterval(() => {
+            checkReceivedAddresses();
+        }, 3000); // Check every 3 seconds continuously
+
+        // Update button state to show auto-refresh is on
+        document.getElementById('auto-refresh-btn').textContent = 'Disable Auto-Refresh';
+        document.getElementById('auto-refresh-btn').style.background = '#6366f1';
     </script>
 </body>
 </html>
