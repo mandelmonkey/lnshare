@@ -258,6 +258,7 @@
         let autoRefreshInterval = null;
         let lastAddressCount = 0;
         let qrGeneratedTimestamp = null;
+        let lastCheckTime = Date.now();
 
         // Generate QR code
         async function generateQR() {
@@ -337,6 +338,9 @@
         // Check for received addresses
         async function checkReceivedAddresses() {
             try {
+                // Update last check time
+                lastCheckTime = Date.now();
+
                 // Add cache-busting timestamp to prevent browser caching
                 const cacheBuster = Date.now();
                 const response = await fetch(`/api/test?route=received&_t=${cacheBuster}`);
@@ -438,21 +442,38 @@
             }
         }
 
-        // Start auto-refresh on page load - simple continuous loop
-        console.log('🔄 Starting continuous auto-refresh (every 3 seconds)');
-        autoRefreshInterval = setInterval(() => {
+        // Start auto-refresh
+        function startAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+
+            console.log('🔄 Starting continuous auto-refresh (every 3 seconds)');
+            autoRefreshInterval = setInterval(() => {
+                checkReceivedAddresses();
+            }, 3000); // Check every 3 seconds continuously
+
+            // Check immediately
             checkReceivedAddresses();
-        }, 3000); // Check every 3 seconds continuously
 
-        // Check immediately on page load
-        checkReceivedAddresses();
+            // Update button state
+            document.getElementById('auto-refresh-btn').textContent = 'Disable Auto-Refresh';
+            document.getElementById('auto-refresh-btn').style.background = '#6366f1';
 
-        // Update button state to show auto-refresh is on
-        document.getElementById('auto-refresh-btn').textContent = 'Disable Auto-Refresh';
-        document.getElementById('auto-refresh-btn').style.background = '#6366f1';
+            console.log('✓ Auto-refresh interval ID:', autoRefreshInterval);
+        }
 
-        // Debug: Log that interval is set
-        console.log('✓ Auto-refresh interval ID:', autoRefreshInterval);
+        // Watchdog: Check if interval is still running every 10 seconds
+        setInterval(() => {
+            const timeSinceLastCheck = Date.now() - lastCheckTime;
+            if (timeSinceLastCheck > 5000) { // If more than 5 seconds since last check
+                console.warn('⚠️ Auto-refresh appears stuck! Restarting... (last check was', Math.round(timeSinceLastCheck / 1000), 'seconds ago)');
+                startAutoRefresh();
+            }
+        }, 10000); // Check every 10 seconds
+
+        // Start auto-refresh on page load
+        startAutoRefresh();
     </script>
 </body>
 </html>
