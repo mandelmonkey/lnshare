@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lnshare-v2.0.3';
+const CACHE_NAME = 'lnshare-v2.0.5';
 const ASSETS = [
   '/',
   '/index.html',

@@ -1,7 +1,7 @@
 {
   "name": "LNShare - Lightning Address Sharing",
   "short_name": "LNShare",
-  "description": "Share your Lightning Address via QR code using LUD-22 protocol",
+  "description": "Share your Lightning Address via QR code",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1f2937",
