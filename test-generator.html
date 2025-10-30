@@ -157,23 +157,36 @@
             transform: translateX(-50%);
             background: #10b981;
             color: white;
-            padding: 1rem 2rem;
+            padding: 1.25rem 2.5rem;
             border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
             font-weight: 600;
+            font-size: 1.1rem;
             z-index: 1000;
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.3s ease, transform 0.3s ease;
             max-width: 90%;
             text-align: center;
         }
 
         .toast.show {
             opacity: 1;
+            animation: slideUp 0.3s ease;
         }
 
         .toast.error {
             background: #ef4444;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateX(-50%) translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
         }
     </style>
 </head>
@@ -297,9 +310,14 @@
             toast.textContent = message;
             toast.className = 'toast show' + (isError ? ' error' : '');
 
+            // Vibrate on mobile if supported
+            if ('vibrate' in navigator) {
+                navigator.vibrate(200);
+            }
+
             setTimeout(() => {
                 toast.classList.remove('show');
-            }, 4000);
+            }, 5000);
         }
 
         // Check for received addresses
@@ -333,6 +351,12 @@
                     newAddresses.forEach(item => {
                         showToast(`✅ Received address: ${item.address}`);
                     });
+
+                    // Hide the QR code after successful scan
+                    const qrDisplay = document.getElementById('qr-display');
+                    if (qrDisplay) {
+                        qrDisplay.style.display = 'none';
+                    }
                 }
                 lastAddressCount = data.addresses.length;
 
