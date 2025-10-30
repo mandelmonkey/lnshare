@@ -91,6 +91,11 @@ async function getRecentAddresses(limit = 10) {
 }
 
 export default async function handler(req, res) {
+  console.log('=== API Request ===');
+  console.log('Method:', req.method);
+  console.log('Route:', req.query.route);
+  console.log('Using fallback storage:', useInMemoryFallback);
+
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -158,9 +163,11 @@ export default async function handler(req, res) {
 
   // Route: /api/test?route=callback - Receive Lightning address (POST)
   if (req.query.route === 'callback' && req.method === 'POST') {
+    console.log('Callback request body:', req.body);
     const { k1, address } = req.body;
 
     if (!k1 || !address) {
+      console.log('ERROR: Missing k1 or address');
       return res.status(400).json({
         status: 'ERROR',
         reason: 'Missing k1 or address parameter'
