@@ -42,6 +42,12 @@ export default async function handler(req, res) {
 
   const route = req.query.route;
 
+  // Helper to get base URL without www
+  const getBaseUrl = () => {
+    const host = req.headers.host.replace(/^www\./, '');
+    return `https://${host}`;
+  };
+
   // Route: /api/test?route=create - Generate new test request
   if (route === 'create' && req.method === 'GET') {
     const metadata = req.query.metadata || 'Test request from LNShare';
@@ -52,7 +58,7 @@ export default async function handler(req, res) {
       .join('');
 
     // Create request URL
-    const baseUrl = `https://${req.headers.host}`;
+    const baseUrl = getBaseUrl();
     const requestUrl = `${baseUrl}/api/test?route=request&tag=addressRequest&k1=${k1}&metadata=${encodeURIComponent(metadata)}`;
 
     return res.status(200).json({
@@ -82,7 +88,7 @@ export default async function handler(req, res) {
     }
 
     // Return LUD-22 address request response
-    const baseUrl = `https://${req.headers.host}`;
+    const baseUrl = getBaseUrl();
     return res.status(200).json({
       tag: 'addressRequest',
       callback: `${baseUrl}/api/test?route=callback`,
@@ -116,6 +122,7 @@ export default async function handler(req, res) {
 
     // Log to console (visible in Vercel logs)
     console.log('✅ Received Lightning Address:', address, 'k1:', k1);
+    console.log('Storage after adding:', globalThis.__lnshareStorage.length, 'addresses');
 
     // Return success
     return res.status(200).json({
@@ -128,8 +135,15 @@ export default async function handler(req, res) {
     const limit = parseInt(req.query.limit) || 10;
     const addresses = getRecentAddresses(limit);
 
+    console.log(`Received request for addresses. Storage has ${addresses.length} addresses:`, addresses);
+
     return res.status(200).json({
-      addresses,
+      addresses: addresses.map(item => ({
+        address: item.address,
+        k1: item.k1,
+        timestamp: item.timestamp,
+        time: item.time // Make sure we include the numeric timestamp
+      })),
       count: addresses.length
     });
   }

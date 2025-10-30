@@ -365,8 +365,9 @@
                 const timestampBuffer = 5000; // 5 seconds
                 const relevantAddresses = qrGeneratedTimestamp
                     ? data.addresses.filter(item => {
-                        const isRelevant = item.timestamp >= (qrGeneratedTimestamp - timestampBuffer);
-                        console.log(`Address ${item.address} timestamp: ${item.timestamp}, threshold: ${qrGeneratedTimestamp - timestampBuffer}, relevant: ${isRelevant}`);
+                        // Use item.time (numeric timestamp) not item.timestamp (ISO string)
+                        const isRelevant = item.time >= (qrGeneratedTimestamp - timestampBuffer);
+                        console.log(`Address ${item.address} time: ${item.time}, threshold: ${qrGeneratedTimestamp - timestampBuffer}, relevant: ${isRelevant}`);
                         return isRelevant;
                     })
                     : data.addresses;
