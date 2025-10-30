@@ -347,7 +347,9 @@
         // Check for received addresses
         async function checkReceivedAddresses() {
             try {
-                const response = await fetch('/api/test?route=received');
+                // Add cache-busting timestamp to prevent browser caching
+                const cacheBuster = Date.now();
+                const response = await fetch(`/api/test?route=received&_t=${cacheBuster}`);
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
