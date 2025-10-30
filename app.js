@@ -156,7 +156,7 @@ class LNShareApp {
     const address = input.value.trim().toLowerCase();
 
     if (!this.validateLightningAddress(address)) {
-      this.showError('Please enter a valid Lightning address (user@domain.com)');
+      this.showError('The lightning address is not valid');
       return;
     }
 
@@ -202,7 +202,7 @@ class LNShareApp {
 
     } catch (error) {
       console.error('Validation error:', error);
-      this.showError(`Validation failed: ${error.message}`);
+      this.showError('The lightning address is not valid');
       button.disabled = false;
       button.textContent = 'Save Address';
     }
